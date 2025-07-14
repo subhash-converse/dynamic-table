@@ -3,14 +3,10 @@ import React from 'react'
 import {
     useReactTable,
     getCoreRowModel,
-    flexRender,
-    createColumnHelper,
+    flexRender
 } from '@tanstack/react-table';
-import { spawn } from 'child_process';
 
-
-
-const Table = ({ data, columns }: any) => {
+const Table = ({ data, columns, id }: any) => {
     const table = useReactTable({
         data,
         columns,
@@ -19,7 +15,7 @@ const Table = ({ data, columns }: any) => {
 
     return (
         <div className="w-full">
-            <table className="w-full border border-gray-300">
+            <table id={id} className="w-full border border-gray-300">
                 <thead className="bg-gray-100">
                     {table.getHeaderGroups().map(headerGroup => (
                         <tr key={headerGroup.id}>
