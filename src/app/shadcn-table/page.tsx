@@ -1,11 +1,21 @@
 "use client";
 
-import Table from '@/components/table-html'
+// import Table from '@/components/table-html'
+// {/* <Table data={data} columns={columns} id={"table"} /> */}
+
 import SidebarLayout from '@/layouts/sidebar-layout'
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { cn } from '../../../lib/utils'
-import { createColumnHelper } from '@tanstack/react-table';
-import { DataTable } from '@/components/table';
+import { createColumnHelper, getCoreRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table';
+import { DataTable } from '@/components/table/index';
+import { SlOptions } from "react-icons/sl";
+
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type Transaction = {
     id: number;
@@ -20,12 +30,14 @@ type Heading<T> = {
     name: string;
     accessor: keyof T;
     render?: (value: any, row: T) => React.ReactNode;
+    editable?: boolean;
     className?: (value: any, row: T) => string;
+    width?: string | number;
 };
 
 const headings: Heading<Transaction>[] = [
-    { name: 'Id', accessor: 'id' },
-    { name: 'Date', accessor: 'date' },
+    { name: 'Id', accessor: 'id', editable: true, className: (value) => value === 1 ? "bg-red-300 text-white" : "" },
+    { name: 'Date', accessor: 'date', editable: true, },
     { name: 'Description', accessor: 'description', className: (value) => value === "Salary" ? "bg-red-300 text-white" : "" },
     { name: 'Amount', accessor: 'amount', render: (value) => `₹${Math.abs(value).toLocaleString()}`, className: (value) => value < 0 ? 'text-red-500' : 'text-green-600' },
     { name: 'Type', accessor: 'type' },
@@ -33,20 +45,24 @@ const headings: Heading<Transaction>[] = [
         name: 'Action',
         accessor: 'action',
         render: (_value, row) => (
-            <div className='flex gap-2 py-1'>
-                <button
-                    onClick={() => alert(`Editing: ${row.id}`)}
-                    className="px-2 py-1 text-xs text-white bg-[#1758d0] rounded shadow-md"
-                >
-                    Edit
-                </button>
-                <button
-                    onClick={() => alert(`Deleting: ${row.id}`)}
-                    className="px-2 py-1 text-xs text-black bg-gray-200 rounded shadow-md"
-                >
-                    Delete
-                </button>
-            </div>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <button className="p-1 hover:bg-gray-200 rounded">
+                        <SlOptions className="w-4 h-4" />
+                    </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => alert(`Editing ${row.description + " " + row.id}`)}>
+                        Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => alert(`Deleting ${row.description + " " + row.id}`)}>
+                        Delete
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => alert(`Sharing ${row.description + " " + row.id}`)}>
+                        Share
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         ),
     },
 ];
@@ -72,52 +88,96 @@ const data: Transaction[] = [
     { id: 18, date: '2025-07-12', description: 'Freelance', amount: 2000, type: 'credit' },
 ];
 
-
 const columnHelper = createColumnHelper<any>();
 
-const columns = headings.map((heading) => {
-    return columnHelper.accessor(heading.accessor as any, {
-        header: heading.name,
-        cell: (info) => {
-            const value = info.getValue();
-            const row = info.row.original;
-
-            const content = heading.render ? heading.render(value, row) : value;
-            const className = heading.className ? heading.className(value, row) : '';
-
-            return <div className={className}>{content}</div>;
-        },
-    });
-});
-
-
 const page = () => {
-    const [open, setOpen] = useState(true)
+    const [editingCell, setEditingCell] = useState<{ rowId: number; column: string } | null>(null);
+    const [editedValue, setEditedValue] = useState<string | number>("");
+    const [open, setOpen] = useState(false)
+
+    const updateRow = (id: number, newIdValue: string | number) => {
+        const newData = data.map((item) =>
+            item.id === id ? { ...item, id: Number(newIdValue) } : item
+        );
+        console.log(newData);
+    };
+
+    const columns = headings.map((heading) => {
+        return columnHelper.accessor(heading.accessor as any, {
+            header: heading.name,
+            cell: (info) => {
+                const value = info.getValue();
+                const row = info.row.original;
+                const isEditing = editingCell?.rowId === row.id && editingCell?.column === heading.accessor;
+                const content = heading.render ? heading.render(value, row) : value;
+                const className = heading.className ? heading.className(value, row) : '';
+
+                const editableFields: string[] = [];
+                if (heading.editable) {
+                    editableFields.push(heading.accessor)
+                }
+
+                if (isEditing) {
+                    return (
+                        <input
+                            className="border px-2 py-1 w-full"
+                            value={editedValue}
+                            autoFocus
+                            onChange={(e) => setEditedValue(e.target.value)}
+                            onBlur={() => {
+                                updateRow(row.id, editedValue);
+                                setEditingCell(null);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    updateRow(row.id, editedValue);
+                                    setEditingCell(null);
+                                } else if (e.key === 'Escape') {
+                                    setEditingCell(null);
+                                }
+                            }}
+                        />
+                    );
+                }
+
+                return (
+                    <div
+                        className={cn(className, "flex justify-end items-center truncate p-2")}
+                        style={{ width: heading.width, minHeight: "40px" }}
+                        onClick={() => {
+                            if (editableFields.includes(heading.accessor as string)) {
+                                setEditingCell({ rowId: row.id, column: heading.accessor as string });
+                                setEditedValue(value);
+                            }
+                        }}
+                    >
+                        {content}
+                    </div>
+                );
+            },
+        });
+    });
+
+    const table = useReactTable({
+        data,
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        initialState: {
+            pagination: {
+                pageSize: 12, 
+            },
+            
+        },
+    })
+
     return (
         <SidebarLayout>
             <div className={cn("bg-white flex gap-4 px-5 py-4 h-full ")}>
                 <div className={cn("border border-gray-400 rounded-[7px] duration-500", open ? "w-[260px]" : "w-[60px]")} onClick={() => setOpen((prev) => !prev)}></div>
                 <div className={cn("border flex-1 border-gray-400 rounded-[7px] p-4")}>
-                    {/* <Table data={data} columns={columns} id={"table"} /> */}
-                    {/* <DataTable columns={columns} data={data} /> */}
-                    <table className="w-full table-fixed border border-collapse border-gray-300">
-                        <tbody>
-                            <tr className="align-top">
-                                <td className="border p-2">
-                                    <div className="min-h-[190px] bg-red-100">Tall Cell</div>
-                                </td>
-                                <td className="border p-2">
-                                    <div className="min-h-[190px] bg-blue-100 flex items-center justify-center">
-                                        ✅ Now it matches height!
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-
+                    <DataTable table={table} />
                 </div>
-
             </div>
         </SidebarLayout>
     )

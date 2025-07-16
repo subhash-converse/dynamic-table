@@ -1,12 +1,8 @@
 "use client";
-
-// import Table from '@/components/table-html'
-// {/* <Table data={data} columns={columns} id={"table"} /> */}
-
 import SidebarLayout from '@/layouts/sidebar-layout'
 import React, { useRef, useState } from 'react'
 import { cn } from '../../../lib/utils'
-import { createColumnHelper } from '@tanstack/react-table';
+import { createColumnHelper, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table';
 import { DataTable } from '@/components/table/index';
 import { SlOptions } from "react-icons/sl";
 
@@ -16,6 +12,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import TableColumnFilter from '@/components/table/table-column-filter';
 
 type Transaction = {
     id: number;
@@ -31,14 +28,19 @@ type Heading<T> = {
     accessor: keyof T;
     render?: (value: any, row: T) => React.ReactNode;
     editable?: boolean;
+    editableType?: "input" | "select"
+    editableOptions?:any[]
+    columnFilter?: boolean,
+    columnFilterType?:  "input" | "select"
+    columnFilterOption?: any[]
     className?: (value: any, row: T) => string;
     width?: string | number;
 };
 
 const headings: Heading<Transaction>[] = [
-    { name: 'Id', accessor: 'id', editable: true, className: (value) => value === 1 ? "bg-red-300 text-white" : "" },
-    { name: 'Date', accessor: 'date', editable: true, },
-    { name: 'Description', accessor: 'description', className: (value) => value === "Salary" ? "bg-red-300 text-white" : "" },
+    { name: 'Id', accessor: 'id', editable: true, editableType: "select", editableOptions: [1,3,5], className: (value) => value === 1 ? "bg-red-300 text-white" : "" },
+    { name: 'Date', accessor: 'date', columnFilter: true, columnFilterType: "select", columnFilterOption: ["2025-07-10","2025-07-11","2025-07-12"], },
+    { name: 'Description', accessor: 'description',columnFilter: true, columnFilterType: "select", columnFilterOption: ["Salary","Salary","Freelance"], className: (value) => value === "Salary" ? "bg-red-300 text-white" : "" },
     { name: 'Amount', accessor: 'amount', render: (value) => `₹${Math.abs(value).toLocaleString()}`, className: (value) => value < 0 ? 'text-red-500' : 'text-green-600' },
     { name: 'Type', accessor: 'type' },
     {
@@ -104,7 +106,14 @@ const page = () => {
 
     const columns = headings.map((heading) => {
         return columnHelper.accessor(heading.accessor as any, {
-            header: heading.name,
+            header: ({ column }) => (
+                <TableColumnFilter<Transaction>
+                    column={column}
+                    editable={heading.columnFilter}
+                    editableType={heading.columnFilterType}
+                    options={heading.columnFilterOption}
+                />
+            ),
             cell: (info) => {
                 const value = info.getValue();
                 const row = info.row.original;
@@ -158,12 +167,26 @@ const page = () => {
         });
     });
 
+    const table = useReactTable({
+        data,
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        initialState: {
+            pagination: {
+                pageSize: 12,
+            },
+
+        },
+    })
+
     return (
         <SidebarLayout>
             <div className={cn("bg-white flex gap-4 px-5 py-4 h-full ")}>
                 <div className={cn("border border-gray-400 rounded-[7px] duration-500", open ? "w-[260px]" : "w-[60px]")} onClick={() => setOpen((prev) => !prev)}></div>
                 <div className={cn("border flex-1 border-gray-400 rounded-[7px] p-4")}>
-                    <DataTable columns={columns} data={data} />
+                    <DataTable table={table} />
                 </div>
             </div>
         </SidebarLayout>
