@@ -1,46 +1,81 @@
-"use client"
-import React from 'react'
-import {
-    useReactTable,
-    getCoreRowModel,
-    flexRender
-} from '@tanstack/react-table';
+// "use client"
 
-const Table = ({ data, columns, id }: any) => {
-    const table = useReactTable({
-        data,
-        columns,
-        getCoreRowModel: getCoreRowModel(),
-    })
+// import {
+//   ColumnDef,
+//   flexRender,
+//   getCoreRowModel,
+//   useReactTable,
+// } from "@tanstack/react-table"
 
-    return (
-        <div className="w-full">
-            <table id={id} className="w-full border border-gray-300">
-                <thead className="bg-gray-100">
-                    {table.getHeaderGroups().map(headerGroup => (
-                        <tr key={headerGroup.id}>
-                            {headerGroup.headers.map(header => (
-                                <th key={header.id} className="p-2 text-left border-b">
-                                    {flexRender(header.column.columnDef.header, header.getContext())}
-                                </th>
-                            ))}
-                        </tr>
-                    ))}
-                </thead>
-                <tbody>
-                    {table.getRowModel().rows.map(row => (
-                        <tr key={row.id} className="hover:bg-gray-50">
-                            {row.getVisibleCells().map(cell => (
-                                <td key={cell.id} className="p-2 border-b">
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </td>
-                            ))}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    )
-}
+// import {
+//   Table,
+//   TableBody,
+//   TableCell,
+//   TableHead,
+//   TableHeader,
+//   TableRow,
+// } from "@/components/ui/table"
 
-export default Table
+// interface DataTableProps<TData, TValue> {
+//   columns: ColumnDef<TData, TValue>[]
+//   data: TData[]
+// }
+
+// export function DataTable<TData, TValue>({
+//   columns,
+//   data,
+// }: DataTableProps<TData, TValue>) {
+//   const table = useReactTable({
+//     data,
+//     columns,
+//     getCoreRowModel: getCoreRowModel(),
+//   })
+
+//   return (
+//     <div className="rounded-md border">
+//       <Table className="table-fixed">
+//         <TableHeader>
+//           {table.getHeaderGroups().map((headerGroup) => (
+//             <TableRow key={headerGroup.id}>
+//               {headerGroup.headers.map((header) => {
+//                 return (
+//                   <TableHead key={header.id} className="text-center">
+//                     {header.isPlaceholder
+//                       ? null
+//                       : flexRender(
+//                           header.column.columnDef.header,
+//                           header.getContext()
+//                         )}
+//                   </TableHead>
+//                 )
+//               })}
+//             </TableRow>
+//           ))}
+//         </TableHeader>
+//         <TableBody>
+//           {table.getRowModel().rows?.length ? (
+//             table.getRowModel().rows.map((row) => (
+//               <TableRow
+//                 key={row.id}
+//                 data-state={row.getIsSelected() && "selected"}
+//               >
+//                 {row.getVisibleCells().map((cell) => (
+//                   <TableCell key={cell.id} >
+//                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
+//                   </TableCell>
+//                 ))}
+//               </TableRow>
+//             ))
+//           ) : (
+//             <TableRow>
+//               <TableCell colSpan={columns.length} className="h-24 text-center">
+//                 No results.
+//               </TableCell>
+//             </TableRow>
+//           )}
+//         </TableBody>
+//       </Table>
+//     </div>
+//   )
+// }
+<></>
