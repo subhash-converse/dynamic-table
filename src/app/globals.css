@@ -43,8 +43,8 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-table tbody tr td{
-  padding: 0px;
+table tbody tr td,table thead tr th {
+  padding: 0px !important;
 }
 
 :root {

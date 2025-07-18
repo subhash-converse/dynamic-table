@@ -1,10 +1,12 @@
 "use client";
+
 import SidebarLayout from '@/layouts/sidebar-layout'
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { cn } from '../../../lib/utils'
-import { createColumnHelper, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table';
+import { createColumnHelper, getCoreRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table';
 import { DataTable } from '@/components/table/index';
 import { SlOptions } from "react-icons/sl";
+import { Button } from "@/components/ui/button"
 
 import {
     DropdownMenu,
@@ -12,7 +14,6 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import TableColumnFilter from '@/components/table/table-column-filter';
 
 type Transaction = {
     id: number;
@@ -28,19 +29,14 @@ type Heading<T> = {
     accessor: keyof T;
     render?: (value: any, row: T) => React.ReactNode;
     editable?: boolean;
-    editableType?: "input" | "select"
-    editableOptions?:any[]
-    columnFilter?: boolean,
-    columnFilterType?:  "input" | "select"
-    columnFilterOption?: any[]
     className?: (value: any, row: T) => string;
     width?: string | number;
 };
 
 const headings: Heading<Transaction>[] = [
-    { name: 'Id', accessor: 'id', editable: true, editableType: "select", editableOptions: [1,3,5], className: (value) => value === 1 ? "bg-red-300 text-white" : "" },
-    { name: 'Date', accessor: 'date', columnFilter: true, columnFilterType: "select", columnFilterOption: ["2025-07-10","2025-07-11","2025-07-12"], },
-    { name: 'Description', accessor: 'description',columnFilter: true, columnFilterType: "select", columnFilterOption: ["Salary","Salary","Freelance"], className: (value) => value === "Salary" ? "bg-red-300 text-white" : "" },
+    { name: 'Id', accessor: 'id', editable: true, className: (value) => value === 1 ? "bg-red-300 text-white" : "" },
+    { name: 'Date', accessor: 'date', editable: true, },
+    { name: 'Description', editable: true, accessor: 'description', className: (value) => value === "Salary" ? "bg-red-300 text-white" : "" },
     { name: 'Amount', accessor: 'amount', render: (value) => `₹${Math.abs(value).toLocaleString()}`, className: (value) => value < 0 ? 'text-red-500' : 'text-green-600' },
     { name: 'Type', accessor: 'type' },
     {
@@ -69,7 +65,7 @@ const headings: Heading<Transaction>[] = [
     },
 ];
 
-const data: Transaction[] = [
+const data = [
     { id: 1, date: '2025-07-10', description: 'Salary', amount: 5000, type: 'credit' },
     { id: 2, date: '2025-07-11', description: 'Groceries', amount: -1200, type: 'debit' },
     { id: 3, date: '2025-07-12', description: 'Freelance', amount: 2000, type: 'credit' },
@@ -90,30 +86,28 @@ const data: Transaction[] = [
     { id: 18, date: '2025-07-12', description: 'Freelance', amount: 2000, type: 'credit' },
 ];
 
-const columnHelper = createColumnHelper<any>();
+const columnHelper = createColumnHelper<Transaction>();
 
 const page = () => {
+    const tablePerRows = 5;
+    const [tableData, setTableData] = useState<Transaction[]>(data as Transaction[])
     const [editingCell, setEditingCell] = useState<{ rowId: number; column: string } | null>(null);
     const [editedValue, setEditedValue] = useState<string | number>("");
+    const [savedValue, setSavededValue] = useState<string | number>("");
     const [open, setOpen] = useState(false)
 
-    const updateRow = (id: number, newIdValue: string | number) => {
-        const newData = data.map((item) =>
-            item.id === id ? { ...item, id: Number(newIdValue) } : item
+    const updateRow = (id: number, newValue: string | number, key: string) => {
+        console.log(newValue);
+        console.log(editedValue, "edit");
+        const newData = tableData.map((item) =>
+            item.id === id ? { ...item, [key]: (newValue) ? newValue : editedValue } : item
         );
-        console.log(newData);
+        setTableData(newData as Transaction[])
     };
 
     const columns = headings.map((heading) => {
         return columnHelper.accessor(heading.accessor as any, {
-            header: ({ column }) => (
-                <TableColumnFilter<Transaction>
-                    column={column}
-                    editable={heading.columnFilter}
-                    editableType={heading.columnFilterType}
-                    options={heading.columnFilterOption}
-                />
-            ),
+            header: () => (<div className='bg-[#F7AB79] h-full flex justify-center items-end'>{heading.name}</div>),
             cell: (info) => {
                 const value = info.getValue();
                 const row = info.row.original;
@@ -128,24 +122,56 @@ const page = () => {
 
                 if (isEditing) {
                     return (
-                        <input
-                            className="border px-2 py-1 w-full"
-                            value={editedValue}
-                            autoFocus
-                            onChange={(e) => setEditedValue(e.target.value)}
-                            onBlur={() => {
-                                updateRow(row.id, editedValue);
-                                setEditingCell(null);
-                            }}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    updateRow(row.id, editedValue);
-                                    setEditingCell(null);
-                                } else if (e.key === 'Escape') {
-                                    setEditingCell(null);
-                                }
-                            }}
-                        />
+                        <div className={cn(info.row.index === tablePerRows - 1 ? "flex flex-col-reverse gap-1" : "flex flex-col gap-1")}>
+                            <div>
+                                <input
+                                    className="border px-2 py-1 w-full"
+                                    value={editedValue}
+                                    autoFocus
+                                    onChange={(e) => setEditedValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            updateRow(row.id, editedValue, heading.accessor);
+                                            setSavededValue(editedValue);
+                                            setEditingCell(null);
+                                        } else if (e.key === 'Escape') {
+                                            setEditingCell(null);
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div className='relative '>
+                                <div
+                                    className={cn(
+                                        info.row.index === tablePerRows - 1 ? "absolute bottom-0" : "absolute top-0",
+                                        "flex w-full justify-end gap-2"
+                                    )}
+                                >
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setEditedValue(savedValue);
+                                            setEditingCell(null);
+                                        }}
+                                    >
+                                        Discard
+                                    </Button>
+                                    <Button
+                                        className="bg-[#F7AB79] hover:bg-[#c59575] text-white"
+                                        variant="outline"
+                                        onClick={() => {
+                                            updateRow(row.id, editedValue, heading.accessor);
+                                            setSavededValue(editedValue);
+                                            setEditingCell(null);
+                                        }}
+                                    >
+                                        Save
+                                    </Button>
+                                </div>
+                            </div>
+
+                        </div>
+
                     );
                 }
 
@@ -157,6 +183,7 @@ const page = () => {
                             if (editableFields.includes(heading.accessor as string)) {
                                 setEditingCell({ rowId: row.id, column: heading.accessor as string });
                                 setEditedValue(value);
+                                setSavededValue(value)
                             }
                         }}
                     >
@@ -167,18 +194,18 @@ const page = () => {
         });
     });
 
+
     const table = useReactTable({
-        data,
-        columns,
+        data: tableData,
+        columns: columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
         initialState: {
             pagination: {
-                pageSize: 12,
+                pageSize: tablePerRows,
             },
-
         },
+
     })
 
     return (
